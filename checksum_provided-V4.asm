@@ -1,5 +1,4 @@
-# TODO: ADD NAME AND STUDENT NUMBER
-# TODO: ADD OTHER COMMENTS YOU HAVE HERE AT THE TOP OF THIS FILE
+# TODO: Rita Yang 260893989
 # TODO: SEE LABELS FOR PROCEDURES YOU MUST IMPLEMENT AT THE BOTTOM OF THIS FILE
 # TODO: NOTICE THE TODO IN THE .DATA SEGMENT
 # TODO: RENAME THIS FILE AS PER THE SUBMISSION REQUIREMENTS
@@ -207,7 +206,13 @@ TNLExit:		sb $0 ($a0)
 ##################################################
 # null terminated buffer is in $a0
 # algorithm number is in $a1 (1 = complement, 2 = odd parity)
-GenerateChecksum:	# TODO: Implement this function!
+GenerateChecksum:	
+
+# TODO: Implement this function!
+
+
+
+
 
 ##################################################
 # null terminated buffer is in $a0
