@@ -11,29 +11,15 @@ GenerateChecksum:	addi $sp $sp -24
 			li $s2 0 #sum 
 			li $s3 0 #current char Ascii value
 			li $s4 0 # i  
-	
-LoopGenerate:		
-			lb $s3 0($s0)
-			beq $s3 $0 DoneGenerate
-			add $s2 $s2 $s3
-			li $v0 4
-			la $a0 MESSAGE
+			
+			
+			beq $a1 1 Complement
+			#beq $a1 2 Parity
+			move $s1 $v0 #save complement value 
+			li $v0 11 #print result 
+			la $a0 ($s1)
 			syscall
-			li $v0 1
-			la $a0 ($s3)
-			syscall 
-		
-			addi $s0 $s0 1 #get the next char 
-			j LoopGenerate
-
-
-DoneGenerate:		
-			sub $t1 $0 $s2 #2's complement
-			addi $s2 $t1 1 #add 1 
-			li $v0 1
-			la $a0 ($s2)
-			syscall 
-			move $v0 $s2
+			
 			lw $ra 0($sp) 
 			lw $s0 4($sp)
 			lw $s1 8($sp)
@@ -43,3 +29,22 @@ DoneGenerate:
 			addi $sp $sp 24 
 			jr $ra 
 			
+			
+
+Complement:  		move $t1 $a0 #save pointer to text buffer 
+			li $v0 0 #initialize result  
+			
+
+LoopComplement:		
+			lb $t2 0($t1)#load text buffer to t2 
+			beq $t2 $0 DoneComplement #if null then end loop 
+			add $v0 $v0 $t2 #otherwise add ascii value
+			addi $t1 $t1 1 #get the next char in the text buffer 
+			j LoopComplement
+
+
+DoneComplement:		
+			nor $t3 $v0 $0 #2's complement
+			addi $v0 $t3 1 #add 1 
+			sb $v0 ($t1) #store to buffer 
+			jr $ra 
