@@ -1,45 +1,48 @@
-Parity: 		move $t2 $a0 #save pointer to text buffer 
-			li $t1 0 #parity byte 
-			li $t0 1 #bit position counter 
+Parity: 		
 			
+			la $t2 ($a0) #text buffer 
+			li $t0 1 #counter 
+			li $t1 1 #mask
+			li $t3 0 #parity result 
+			
+			
+			
+BitPositionLoop: 
+			li $t6 0 #value 1 count for current bit
 
-			
-BitPositionLoop: 	li $t3 1 #mask  00000001
-			li $t6 0 #parity for current bit 
-CharacterLoop:		lb $t4 0($t2) #load char from text buffer 
+
+CharacterLoop:		lb $t4 0($t2) #load char from text buffer into t4  
 			beqz $t4 BitDone #end of text buffer char for this bit position counting 
-			
-			and $t5 $t4 $t3 #check if current bit is 1
+			and $t5 $t4 $t1 #check if current bit is 1
 			beqz $t5 MoveNextChar #is 1 then $t5 is 1, zero then move to next char 
 			addi $t6 $t6 1 #add 1 for this bit position 
+			li $v0 1 #print result 
+			la $a0 ($t6)
+			syscall  
 
 MoveNextChar:		addi $t2 $t2 1 #go to next char 
 			j CharacterLoop
 
-BitDone:		andi $t6 $t6 1 #see if total count for this position is odd or even 
-			move $a2 $t0 	#load bit position count in a2 prior to shifting 
-			move $a1 $t6  #load parity for position
-			jal ShiftLeft 		
-			or $t1 $t1 $v0 #set in result byte 
-			addi $t0 $t0 1 #move to next bit position 
-			
+BitDone:		andi $t6 $t6 1 #see if total count for this position is odd or even, if off $t6=1
+			beq $t6 1 AddOdd
+			sll $t1 $t1 1 #move to next bit position 00000001 -> 00000010
+			addi $t0 $t0 1 #increment counter 
 			beq $t0 8 AllPositionDone #if we did 8 bits already 
 			j BitPositionLoop #otherwise go back to top 
 
+AddOdd: 		
 
-AllPositionDone: 	sb $t1 ($t2) #store to buffer 
-			move $v0 $t1 
+			or $t3 $t3 $t1 #add the odd to s2 result 
+			li $v0 1 #print result 
+			la $a0 ($t3)
+			syscall  
 			jr $ra
-	
+ 
 
-ShiftLeft: 	move $t0 $a2
-		move $v0 $a1
+AllPositionDone: 	sb $t3 ($t2) #store to buffer
+			li $v0 1 #print result 
+			la $a0 ($t3)
+			syscall  
+			jr $ra
 
-ShiftLoop:
-    beqz $t0, ShiftEnd # Exit the loop if $t0 is 0
-    sll $v0, $v0, 1    # Left-shift by 1 bit
-    addi $t0, $t0, -1  # Decrement $t0
-    j ShiftLoop
 
-ShiftEnd:
-   jr $ra
