@@ -211,17 +211,22 @@ TNLExit:		sb $0 ($a0)
 			
 
 
-GenerateChecksum:	
+GenerateChecksum:	 
+			addi $sp $sp -4 
+			sw $ra 0($sp) #store returnto generate branch 
 			
 			move $t1 $a0 #save args 
-			
-			
 			beq $a1 1 Complement
 			beq $a1 2 Parity
+			
 			move $s1 $v0 #save complement value 
 			li $v0 11 #print result 
 			la $a0 ($s1)
 			syscall
+			
+			lw $ra 0($sp)
+			addi $sp $sp 4 
+			jr $ra #go back to "generate" branch 
 			
 		
 Complement:  		
@@ -240,9 +245,9 @@ DoneComplement:
 			nor $t3 $v0 $0 #2's complement
 			addi $v0 $t3 1 #add 1 
 			sb $v0 ($t1) #store to buffer 
+			jr $ra #go back to GenerateChecksum 
 			
-			jr $ra 
-			
+
 Parity:  		
 			li $v0 0 #initialize result  
 			
@@ -256,10 +261,10 @@ LoopParity:
 
 
 DoneParity:		
-			move $t5 $v0
-			not $v0 $t5 #invert all bits 
+			move $t5 $v0 #move result to t5 
+			not $v0 $t5 #invert all bits since we want the negation of xor and store back to v0 
 			sb $v0 ($t1) #store to buffer 
-			jr $ra  
+			jr $ra  #go back to GenerateChecksum 
 			
 
 
@@ -270,54 +275,63 @@ DoneParity:
 # null terminated buffer is in $a0
 # algorithm number is in $a1 (1 = complement, 2 = parity)
 ValidateChecksum: # TODO: Implement this function!
-	
+			addi $sp $sp -4 
+			sw $ra 0($sp) #store return to validate branch 
 			
 			move $t1 $a0 #save args 
+			beq $a1 1 ComplementV  #if algorithm is 1 branch to Complement 
+			beq $a1 2 ParityV  #if algorithm is 2 branch to Parity 
+						
 			
-			
-			beq $a1 1 Complement
-			beq $a1 2 Parity
-			move $s1 $v0 #save complement value 
-			li $v0 11 #print result 
-			la $a0 ($s1)
-			syscall
-			
-		
-Complement:  		
+ComplementV:  		
 			li $v0 0 #initialize result  
 			
 
-LoopComplement:		
+LoopComplementV:		
 			lb $t2 0($t1)#load text buffer to t2 
-			beq $t2 $0 DoneComplement #if null then end loop 
+			beq $t2 $0 DoneComplementV #if null then end loop 
 			add $v0 $v0 $t2 #otherwise add ascii value
 			addi $t1 $t1 1 #get the next char in the text buffer 
-			j LoopComplement
+			j LoopComplementV
 
 
-DoneComplement:		
-			nor $t3 $v0 $0 #2's complement
-			addi $v0 $t3 1 #add 1 
-			sb $v0 ($t1) #store to buffer 
+DoneComplementV:	
+			andi $t1 $v0 0xFF #mask to ignore overflow, getting the last 8 bits 
+			beq $t1 0 Validated #if sum is 0 then branch to print validate 
+			bne $t1 0 NotValidated #if sum is not 0 then branch to print not validated  	
 			
-			jr $ra 
 			
-Parity:  		
+
+			
+ParityV:  		
 			li $v0 0 #initialize result  
 			
 
-LoopParity:		
+LoopParityV:		
 			lb $t2 0($t1)#load text buffer to t2 
-			beq $t2 $0 DoneParity #if null then end loop 
+			beq $t2 $0 DoneParityV #if null then end loop 
 			xor $v0 $v0 $t2 #otherwise xor ascii value
 			addi $t1 $t1 1 #get the next char in the text buffer 
-			j LoopParity
+			j LoopParityV
 
 
-DoneParity:		
-			move $t5 $v0
-			not $v0 $t5 #invert all bits 
-			sb $v0 ($t1) #store to buffer 
-			jr $ra  
+DoneParityV:		
+			move $t5 $v0 #move result to t5, which should be 11111111
+			not $v0 $t5 #invert all bits and store result back in v0 
+			beqz $v0 Validated #if sum is 0 then branch to print validate 
+			bnez $v0 NotValidated #if sum is not 0 then branch to print not validated  
 			
 		
+Validated:		li $v0 4		# print string
+			la $a0 VALIDATED
+			syscall	
+			lw $ra 0($sp)
+			addi $sp $sp 4 
+			jr $ra #go back to "validate" branch  in line 128  
+		
+NotValidated:		li $v0 4		# print string
+			la $a0 NOT_VALIDATED
+			syscall	
+			lw $ra 0($sp)
+			addi $sp $sp 4 
+			jr $ra #go back to "validate" branch in line 128 	
