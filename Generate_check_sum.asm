@@ -210,42 +210,35 @@ TNLExit:		sb $0 ($a0)
 # algorithm number is in $a1 (1 = complement, 2 = odd parity)
 			
 
-
 GenerateChecksum:	 
 			addi $sp $sp -4 
-			sw $ra 0($sp) #store returnto generate branch 
+			sw $ra 0($sp) #store return address to generate on line 118 
 			
-			move $t1 $a0 #save args 
+			move $t1 $a0 #use t1 for buffer parsing 
 			beq $a1 1 Complement
 			beq $a1 2 Parity
 			
-			move $s1 $v0 #save complement value 
-			li $v0 11 #print result 
-			la $a0 ($s1)
-			syscall
-			
-			lw $ra 0($sp)
-			addi $sp $sp 4 
-			jr $ra #go back to "generate" branch 
-			
-		
+				
 Complement:  		
 			li $v0 0 #initialize result  
 			
 
 LoopComplement:		
-			lb $t2 0($t1)#load text buffer to t2 
+			lb $t2 0($t1)#load one char to t2 
 			beq $t2 $0 DoneComplement #if null then end loop 
 			add $v0 $v0 $t2 #otherwise add ascii value
-			addi $t1 $t1 1 #get the next char in the text buffer 
+			addi $t1 $t1 1 #move pointer, get the next char in the text buffer 
 			j LoopComplement
 
 
 DoneComplement:		
-			nor $t3 $v0 $0 #2's complement
-			addi $v0 $t3 1 #add 1 
+			nor $t3 $v0 $0 #1's complement
+			addi $v0 $t3 1 #add 1, 2's complement
 			sb $v0 ($t1) #store to buffer 
-			jr $ra #go back to GenerateChecksum 
+			
+			lw $ra 0($sp)
+			addi $sp $sp 4 
+			jr $ra #go back to "generate"on line 118 , v0 is checksum char 
 			
 
 Parity:  		
@@ -253,19 +246,21 @@ Parity:
 			
 
 LoopParity:		
-			lb $t2 0($t1)#load text buffer to t2 
+			lb $t2 0($t1)#load one char to t2 
 			beq $t2 $0 DoneParity #if null then end loop 
 			xor $v0 $v0 $t2 #otherwise xor ascii value
-			addi $t1 $t1 1 #get the next char in the text buffer 
+			addi $t1 $t1 1 #move pointer, get the next char in the text buffer 
 			j LoopParity
 
 
 DoneParity:		
 			move $t5 $v0 #move result to t5 
-			not $v0 $t5 #invert all bits since we want the negation of xor and store back to v0 
+			not $v0 $t5 #invert all bits since we want the negation of xor 
 			sb $v0 ($t1) #store to buffer 
-			jr $ra  #go back to GenerateChecksum 
 			
+			lw $ra 0($sp)
+			addi $sp $sp 4 
+			jr $ra #go back to "generate" on line 118, V0 is checksum char 
 
 
 
@@ -278,7 +273,7 @@ ValidateChecksum: # TODO: Implement this function!
 			addi $sp $sp -4 
 			sw $ra 0($sp) #store return to validate branch 
 			
-			move $t1 $a0 #save args 
+			move $t1 $a0 #use t1 for buffer 
 			beq $a1 1 ComplementV  #if algorithm is 1 branch to Complement 
 			beq $a1 2 ParityV  #if algorithm is 2 branch to Parity 
 						
@@ -288,10 +283,10 @@ ComplementV:
 			
 
 LoopComplementV:		
-			lb $t2 0($t1)#load text buffer to t2 
+			lb $t2 0($t1)#load one char to t2 
 			beq $t2 $0 DoneComplementV #if null then end loop 
 			add $v0 $v0 $t2 #otherwise add ascii value
-			addi $t1 $t1 1 #get the next char in the text buffer 
+			addi $t1 $t1 1 #move pointer,get the next char in the text buffer 
 			j LoopComplementV
 
 
@@ -308,18 +303,18 @@ ParityV:
 			
 
 LoopParityV:		
-			lb $t2 0($t1)#load text buffer to t2 
+			lb $t2 0($t1)#load one char to t2 
 			beq $t2 $0 DoneParityV #if null then end loop 
 			xor $v0 $v0 $t2 #otherwise xor ascii value
-			addi $t1 $t1 1 #get the next char in the text buffer 
+			addi $t1 $t1 1 #move pointer, get the next char in the text buffer 
 			j LoopParityV
 
 
 DoneParityV:		
 			move $t5 $v0 #move result to t5, which should be 11111111
 			not $v0 $t5 #invert all bits and store result back in v0 
-			beqz $v0 Validated #if sum is 0 then branch to print validate 
-			bnez $v0 NotValidated #if sum is not 0 then branch to print not validated  
+			beqz $v0 Validated #if v0 is 0 then branch to print validate 
+			bnez $v0 NotValidated #if v0 is not 0 then branch to print not validated  
 			
 		
 Validated:		li $v0 4		# print string
@@ -334,4 +329,4 @@ NotValidated:		li $v0 4		# print string
 			syscall	
 			lw $ra 0($sp)
 			addi $sp $sp 4 
-			jr $ra #go back to "validate" branch in line 128 	
+			jr $ra #go back to "validate" branch in line 128 		
